@@ -25,10 +25,24 @@ app.post("/plan", async (req, res) => {
     let storedJsonData = await client.get(
       req.body.objectType + ":" + req.body.objectId
     );
-    res.sendStatus(200).send(storedJsonData);
+    console.log("stored json data", storedJsonData);
+    res.status(200).send(storedJsonData);
   }
 });
 
+app.get("/plan", async (req, res) => {
+  try {
+    const keys = await client.keys("*");
+    const values = await Promise.all(
+      keys.map(async (key) => {
+        return JSON.parse(await client.get(key));
+      })
+    );
+    res.status(200).send(values);
+  } catch (error) {
+    res.sendStatus(500);
+  }
+});
 //get the json from the datastore
 app.get("/plan/:id", async (req, res) => {
   const data = JSON.parse(await client.get(req.params.id));
