@@ -6,25 +6,10 @@ const ajv = new Ajv();
 
 const validate = ajv.compile(schema);
 app.use(express.json());
-let { createClient } = require("redis");
+const { redisConnection } = require("./controllers/redisConnection");
+const { generateETag } = require("./utils/generateEtag");
 let client = "";
-
 //generate etag
-function generateETag(content) {
-  if (!content) return null;
-  const hash = require("crypto")
-    .createHash("sha1")
-    .update(JSON.stringify(content))
-    .digest("hex");
-  return `"${hash}"`;
-}
-
-// Datastore connection
-const redisConnection = async () => {
-  client = createClient();
-  client.on("error", (err) => console.log("Redis Client Error", err));
-  await client.connect();
-};
 
 //Adding new body to the datastore
 app.post("/plan", async (req, res) => {
@@ -69,7 +54,6 @@ app.get("/plan/:id", async (req, res) => {
     } else {
       console.log("hitting non match");
       console.log("the stored etag", storedETag);
-      res.setHeader("ETag", storedETag);
       res.send(data);
     }
   }
@@ -87,7 +71,7 @@ app.delete("/plan/:id", async (req, res) => {
 });
 
 //running the nodejs server
-let server = app.listen(8080, function (req, res) {
+let server = app.listen(8080, async function (req, res) {
   console.log("the server is up and running on port 8080");
-  redisConnection();
+  client = await redisConnection();
 });
